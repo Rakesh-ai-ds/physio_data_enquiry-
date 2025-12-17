@@ -8,7 +8,7 @@
 // ============================================
 
 // Replace this with your Google Apps Script Web App URL after deployment
-const APPS_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyACjTZIg0dBp0tzgtFGF-JVI8SO3g9uxI9TEv5nFENft5UoJe10wYdCqF329gwSnqF/exec';
 
 // ============================================
 // DOM Elements
