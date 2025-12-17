@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prasad Physio Therapy - Patient Management</title>
+    <meta name="description" content="Patient data management system for Prasad Physio Therapy clinic">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header with Logo -->
+    <header class="header">
+        <div class="logo-container">
+            <div class="logo-circle">
+                <img src="logo.png" alt="Prasad Physio Therapy" class="logo-image">
+            </div>
+        </div>
+        <h1 class="clinic-title">Patient Data Management</h1>
+        <p class="clinic-subtitle">Streamlined patient record keeping system</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Entry Form Section -->
+        <section class="form-section glass-card">
+            <div class="section-header">
+                <h2>
+                    <span class="icon">📝</span>
+                    <span id="formTitle">New Patient Entry</span>
+                </h2>
+                <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display: none;">
+                    Cancel Edit
+                </button>
+            </div>
+
+            <form id="patientForm" class="patient-form">
+                <input type="hidden" id="editingSno" value="">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="entryDate">
+                            <span class="label-icon">📅</span>
+                            Date of Entry
+                        </label>
+                        <input type="date" id="entryDate" name="entryDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="patientName">
+                            <span class="label-icon">👤</span>
+                            Patient Name
+                        </label>
+                        <input type="text" id="patientName" name="patientName" placeholder="Enter full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">
+                            <span class="label-icon">⚧</span>
+                            Gender
+                        </label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">
+                            <span class="label-icon">📱</span>
+                            Phone Number
+                        </label>
+                        <input type="tel" id="phone" name="phone" placeholder="Enter phone number" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="address">
+                            <span class="label-icon">🏠</span>
+                            Address
+                        </label>
+                        <textarea id="address" name="address" placeholder="Enter complete address" rows="2" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="referralSource">
+                            <span class="label-icon">💡</span>
+                            How did you know about us?
+                        </label>
+                        <select id="referralSource" name="referralSource">
+                            <option value="">Select Option</option>
+                            <option value="Friend/Family">Friend/Family</option>
+                            <option value="Google Search">Google Search</option>
+                            <option value="Social Media">Social Media</option>
+                            <option value="Doctor Referral">Doctor Referral</option>
+                            <option value="Walking By">Walking By</option>
+                            <option value="Advertisement">Advertisement</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="notes">
+                            <span class="label-icon">📋</span>
+                            Custom Notes
+                        </label>
+                        <textarea id="notes" name="notes" placeholder="Add any additional notes..." rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span class="btn-icon">💾</span>
+                        <span id="submitBtnText">Save Patient Record</span>
+                    </button>
+                    <button type="reset" class="btn btn-outline">
+                        <span class="btn-icon">🔄</span>
+                        Clear Form
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Data Table Section -->
+        <section class="table-section glass-card">
+            <div class="section-header">
+                <h2>
+                    <span class="icon">📊</span>
+                    Patient Records
+                </h2>
+                <div class="table-controls">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search patients...">
+                    </div>
+                    <span class="record-count" id="recordCount">0 Records</span>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table" id="patientTable">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Date</th>
+                            <th>Patient Name</th>
+                            <th>Gender</th>
+                            <th>Phone</th>
+                            <th>Address</th>
+                            <th>Referral</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">📋</div>
+                <h3>No Patient Records Yet</h3>
+                <p>Add your first patient using the form above</p>
+            </div>
+
+            <div class="loading-state" id="loadingState" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading patient records...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span class="toast-icon" id="toastIcon">✅</span>
+        <span class="toast-message" id="toastMessage">Success!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2024 Prasad Physio Therapy. All rights reserved.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
