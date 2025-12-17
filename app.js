@@ -1,33 +1,41 @@
 /**
  * Prasad Physio Therapy - Patient Data Management
- * Frontend JavaScript for Google Sheets Integration
+ * Professional Dashboard-First Design
  */
 
 // ============================================
 // Configuration
 // ============================================
 
-// Google Apps Script Web App URL
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyACjTZIg0dBp0tzgtFGF-JVI8SO3g9uxI9TEv5nFENft5UoJe10wYdCqF329gwSnqF/exec';
 
 // ============================================
 // DOM Elements
 // ============================================
 
+const dashboardSection = document.getElementById('dashboardSection');
+const formSection = document.getElementById('formSection');
+const detailSection = document.getElementById('detailSection');
 const patientForm = document.getElementById('patientForm');
 const tableBody = document.getElementById('tableBody');
+const tableWrapper = document.getElementById('tableWrapper');
 const searchInput = document.getElementById('searchInput');
 const recordCount = document.getElementById('recordCount');
 const emptyState = document.getElementById('emptyState');
 const loadingState = document.getElementById('loadingState');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toastMessage');
-const toastIcon = document.getElementById('toastIcon');
 const formTitle = document.getElementById('formTitle');
 const submitBtn = document.getElementById('submitBtn');
 const submitBtnText = document.getElementById('submitBtnText');
-const cancelEditBtn = document.getElementById('cancelEditBtn');
 const editingSnoInput = document.getElementById('editingSno');
+
+// Buttons
+const addNewBtn = document.getElementById('addNewBtn');
+const backToDashboard = document.getElementById('backToDashboard');
+const cancelBtn = document.getElementById('cancelBtn');
+const backFromDetail = document.getElementById('backFromDetail');
+const editFromViewBtn = document.getElementById('editFromViewBtn');
 
 // ============================================
 // State Management
@@ -35,33 +43,120 @@ const editingSnoInput = document.getElementById('editingSno');
 
 let patients = [];
 let isEditing = false;
+let currentViewingSno = null;
 
 // ============================================
 // Initialization
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('entryDate').value = today;
 
-    // Load existing data
+    // Load data - show dashboard first
     fetchPatients();
 
     // Event Listeners
     patientForm.addEventListener('submit', handleFormSubmit);
-    patientForm.addEventListener('reset', handleFormReset);
     searchInput.addEventListener('input', handleSearch);
-    cancelEditBtn.addEventListener('click', cancelEdit);
+
+    addNewBtn.addEventListener('click', showAddForm);
+    backToDashboard.addEventListener('click', showDashboard);
+    cancelBtn.addEventListener('click', showDashboard);
+    backFromDetail.addEventListener('click', showDashboard);
+    editFromViewBtn.addEventListener('click', editFromView);
 });
 
 // ============================================
-// API Functions - Using URL Parameters for CORS compatibility
+// View Navigation
 // ============================================
 
-/**
- * Fetch all patients from Google Sheets
- */
+function showDashboard() {
+    dashboardSection.style.display = 'block';
+    formSection.style.display = 'none';
+    detailSection.style.display = 'none';
+    resetForm();
+}
+
+function showAddForm() {
+    isEditing = false;
+    formTitle.textContent = 'New Patient Enquiry';
+    submitBtnText.textContent = 'Save Enquiry';
+    resetForm();
+
+    dashboardSection.style.display = 'none';
+    formSection.style.display = 'block';
+    detailSection.style.display = 'none';
+}
+
+function showEditForm(sno) {
+    const patient = patients.find(p => p.sno === parseInt(sno));
+    if (!patient) {
+        showToast('Patient not found', 'error');
+        return;
+    }
+
+    isEditing = true;
+    currentViewingSno = sno;
+    formTitle.textContent = 'Edit Enquiry #' + sno;
+    submitBtnText.textContent = 'Update Enquiry';
+    editingSnoInput.value = sno;
+
+    // Populate form
+    document.getElementById('entryDate').value = patient.date || '';
+    document.getElementById('patientName').value = patient.name || '';
+    document.getElementById('gender').value = patient.gender || '';
+    document.getElementById('phone').value = patient.phone || '';
+    document.getElementById('address').value = patient.address || '';
+    document.getElementById('referralSource').value = patient.referralSource || '';
+    document.getElementById('notes').value = patient.notes || '';
+
+    dashboardSection.style.display = 'none';
+    formSection.style.display = 'block';
+    detailSection.style.display = 'none';
+}
+
+function showDetailView(sno) {
+    const patient = patients.find(p => p.sno === parseInt(sno));
+    if (!patient) {
+        showToast('Patient not found', 'error');
+        return;
+    }
+
+    currentViewingSno = sno;
+
+    // Populate detail view
+    document.getElementById('detailSno').textContent = patient.sno;
+    document.getElementById('detailDate').textContent = formatDate(patient.date);
+    document.getElementById('detailName').textContent = patient.name || '-';
+    document.getElementById('detailGender').textContent = patient.gender || '-';
+    document.getElementById('detailPhone').textContent = patient.phone || '-';
+    document.getElementById('detailReferral').textContent = patient.referralSource || '-';
+    document.getElementById('detailAddress').textContent = patient.address || '-';
+    document.getElementById('detailNotes').textContent = patient.notes || '-';
+
+    dashboardSection.style.display = 'none';
+    formSection.style.display = 'none';
+    detailSection.style.display = 'block';
+}
+
+function editFromView() {
+    if (currentViewingSno) {
+        showEditForm(currentViewingSno);
+    }
+}
+
+function resetForm() {
+    patientForm.reset();
+    editingSnoInput.value = '';
+    isEditing = false;
+    document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+}
+
+// ============================================
+// API Functions
+// ============================================
+
 async function fetchPatients() {
     showLoading(true);
 
@@ -77,21 +172,16 @@ async function fetchPatients() {
         }
     } catch (error) {
         console.error('Fetch error:', error);
-        // Fallback to local storage
         patients = getLocalPatients();
         renderTable(patients);
-        showToast('Using offline mode. Data saved locally.', 'warning');
+        showToast('Using offline mode', 'error');
     } finally {
         showLoading(false);
     }
 }
 
-/**
- * Save patient to Google Sheets using URL redirect method
- */
 async function savePatient(patientData) {
     try {
-        // Build URL with query parameters
         const params = new URLSearchParams({
             action: 'add',
             date: patientData.date,
@@ -113,18 +203,12 @@ async function savePatient(patientData) {
         }
     } catch (error) {
         console.error('Save error:', error);
-        // Fallback to local storage
-        const result = saveLocalPatient(patientData);
-        return result;
+        return saveLocalPatient(patientData);
     }
 }
 
-/**
- * Update patient in Google Sheets
- */
 async function updatePatient(sno, patientData) {
     try {
-        // Build URL with query parameters
         const params = new URLSearchParams({
             action: 'update',
             sno: sno.toString(),
@@ -152,7 +236,7 @@ async function updatePatient(sno, patientData) {
 }
 
 // ============================================
-// Local Storage Functions (Offline/Fallback Mode)
+// Local Storage Functions
 // ============================================
 
 function getLocalPatients() {
@@ -163,36 +247,24 @@ function getLocalPatients() {
 function saveLocalPatient(patientData) {
     const patients = getLocalPatients();
     const newSno = patients.length > 0 ? Math.max(...patients.map(p => p.sno)) + 1 : 1;
-
-    const newPatient = {
-        sno: newSno,
-        ...patientData
-    };
-
-    patients.push(newPatient);
+    patients.push({ sno: newSno, ...patientData });
     localStorage.setItem('prasad_physio_patients', JSON.stringify(patients));
-
     return { success: true, sno: newSno };
 }
 
 function updateLocalPatient(sno, patientData) {
     const patients = getLocalPatients();
     const index = patients.findIndex(p => p.sno === parseInt(sno));
-
     if (index !== -1) {
-        patients[index] = {
-            sno: parseInt(sno),
-            ...patientData
-        };
+        patients[index] = { sno: parseInt(sno), ...patientData };
         localStorage.setItem('prasad_physio_patients', JSON.stringify(patients));
         return { success: true };
     }
-
     return { success: false, error: 'Patient not found' };
 }
 
 // ============================================
-// Form Handlers
+// Form Handler
 // ============================================
 
 async function handleFormSubmit(e) {
@@ -208,7 +280,6 @@ async function handleFormSubmit(e) {
         notes: document.getElementById('notes').value.trim()
     };
 
-    // Validate required fields
     if (!formData.name || !formData.gender || !formData.phone || !formData.address) {
         showToast('Please fill in all required fields', 'error');
         return;
@@ -221,86 +292,27 @@ async function handleFormSubmit(e) {
         let result;
 
         if (isEditing) {
-            const sno = editingSnoInput.value;
-            result = await updatePatient(sno, formData);
-
+            result = await updatePatient(editingSnoInput.value, formData);
             if (result.success) {
-                showToast('Patient record updated successfully!', 'success');
+                showToast('Enquiry updated successfully');
             }
         } else {
             result = await savePatient(formData);
-
             if (result.success) {
-                showToast('Patient record saved successfully!', 'success');
+                showToast('Enquiry saved successfully');
             }
         }
 
-        // Refresh the table
         await fetchPatients();
-
-        // Reset form
-        cancelEdit();
-        patientForm.reset();
-        document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+        showDashboard();
 
     } catch (error) {
         console.error('Submit error:', error);
-        showToast('Error saving record. Please try again.', 'error');
+        showToast('Error saving record', 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtnText.textContent = 'Save Patient Record';
+        submitBtnText.textContent = 'Save Enquiry';
     }
-}
-
-function handleFormReset() {
-    cancelEdit();
-    setTimeout(() => {
-        document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
-    }, 0);
-}
-
-function cancelEdit() {
-    isEditing = false;
-    editingSnoInput.value = '';
-    formTitle.textContent = 'New Patient Entry';
-    submitBtnText.textContent = 'Save Patient Record';
-    cancelEditBtn.style.display = 'none';
-    patientForm.reset();
-    document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
-}
-
-// ============================================
-// Edit Function
-// ============================================
-
-function editPatient(sno) {
-    const patient = patients.find(p => p.sno === parseInt(sno));
-
-    if (!patient) {
-        showToast('Patient record not found', 'error');
-        return;
-    }
-
-    // Set form to edit mode
-    isEditing = true;
-    editingSnoInput.value = sno;
-    formTitle.textContent = `Edit Patient #${sno}`;
-    submitBtnText.textContent = 'Update Patient Record';
-    cancelEditBtn.style.display = 'inline-flex';
-
-    // Populate form fields
-    document.getElementById('entryDate').value = patient.date || '';
-    document.getElementById('patientName').value = patient.name || '';
-    document.getElementById('gender').value = patient.gender || '';
-    document.getElementById('phone').value = patient.phone || '';
-    document.getElementById('address').value = patient.address || '';
-    document.getElementById('referralSource').value = patient.referralSource || '';
-    document.getElementById('notes').value = patient.notes || '';
-
-    // Scroll to form
-    document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    showToast(`Editing patient record #${sno}`, 'info');
 }
 
 // ============================================
@@ -311,13 +323,13 @@ function renderTable(data) {
     if (!data || data.length === 0) {
         tableBody.innerHTML = '';
         emptyState.style.display = 'block';
-        document.querySelector('.table-wrapper').style.display = 'none';
+        tableWrapper.style.display = 'none';
         recordCount.textContent = '0 Records';
         return;
     }
 
     emptyState.style.display = 'none';
-    document.querySelector('.table-wrapper').style.display = 'block';
+    tableWrapper.style.display = 'block';
     recordCount.textContent = `${data.length} Record${data.length !== 1 ? 's' : ''}`;
 
     tableBody.innerHTML = data.map(patient => `
@@ -327,20 +339,17 @@ function renderTable(data) {
             <td>${escapeHtml(patient.name)}</td>
             <td>${escapeHtml(patient.gender)}</td>
             <td>${escapeHtml(patient.phone)}</td>
-            <td title="${escapeHtml(patient.address)}">${escapeHtml(patient.address)}</td>
             <td>${escapeHtml(patient.referralSource || '-')}</td>
-            <td class="notes-cell" title="${escapeHtml(patient.notes || '')}">${escapeHtml(patient.notes || '-')}</td>
-            <td>
-                <button class="btn btn-edit btn-small" onclick="editPatient(${patient.sno})">
-                    ✏️ Edit
-                </button>
+            <td class="actions-cell">
+                <button class="btn btn-view" onclick="showDetailView(${patient.sno})">View</button>
+                <button class="btn btn-outline btn-small" onclick="showEditForm(${patient.sno})">Edit</button>
             </td>
         </tr>
     `).join('');
 }
 
 // ============================================
-// Search Function
+// Search
 // ============================================
 
 function handleSearch(e) {
@@ -354,8 +363,7 @@ function handleSearch(e) {
     const filtered = patients.filter(patient =>
         patient.name.toLowerCase().includes(query) ||
         patient.phone.includes(query) ||
-        patient.address.toLowerCase().includes(query) ||
-        (patient.notes && patient.notes.toLowerCase().includes(query)) ||
+        (patient.address && patient.address.toLowerCase().includes(query)) ||
         patient.sno.toString().includes(query)
     );
 
@@ -363,37 +371,29 @@ function handleSearch(e) {
 }
 
 // ============================================
-// Utility Functions
+// Utilities
 // ============================================
 
 function showLoading(show) {
     loadingState.style.display = show ? 'block' : 'none';
     if (show) {
         emptyState.style.display = 'none';
-        document.querySelector('.table-wrapper').style.display = 'none';
+        tableWrapper.style.display = 'none';
     }
 }
 
 function showToast(message, type = 'success') {
-    const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
-    };
-
-    toastIcon.textContent = icons[type] || icons.success;
+    toast.className = 'toast ' + type;
     toastMessage.textContent = message;
     toast.classList.add('show');
 
     setTimeout(() => {
         toast.classList.remove('show');
-    }, 4000);
+    }, 3000);
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-
     try {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-IN', {
