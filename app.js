@@ -7,7 +7,7 @@
 // Configuration
 // ============================================
 
-// Replace this with your Google Apps Script Web App URL after deployment
+// Google Apps Script Web App URL
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyACjTZIg0dBp0tzgtFGF-JVI8SO3g9uxI9TEv5nFENft5UoJe10wYdCqF329gwSnqF/exec';
 
 // ============================================
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
-// API Functions
+// API Functions - Using URL Parameters for CORS compatibility
 // ============================================
 
 /**
@@ -66,15 +66,6 @@ async function fetchPatients() {
     showLoading(true);
 
     try {
-        // Check if Apps Script URL is configured
-        if (APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL') {
-            // Demo mode - use local storage
-            patients = getLocalPatients();
-            renderTable(patients);
-            showToast('Demo Mode: Using local storage. Configure Apps Script URL for Google Sheets.', 'info');
-            return;
-        }
-
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
         const data = await response.json();
 
@@ -96,33 +87,35 @@ async function fetchPatients() {
 }
 
 /**
- * Save patient to Google Sheets
+ * Save patient to Google Sheets using URL redirect method
  */
 async function savePatient(patientData) {
     try {
-        if (APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL') {
-            // Demo mode - use local storage
-            return saveLocalPatient(patientData);
-        }
-
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'add',
-                data: patientData
-            })
+        // Build URL with query parameters
+        const params = new URLSearchParams({
+            action: 'add',
+            date: patientData.date,
+            name: patientData.name,
+            gender: patientData.gender,
+            phone: patientData.phone,
+            address: patientData.address,
+            referralSource: patientData.referralSource || '',
+            notes: patientData.notes || ''
         });
 
-        // Since no-cors mode doesn't return readable response, assume success
-        return { success: true };
+        const response = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.success) {
+            return { success: true, sno: data.sno };
+        } else {
+            throw new Error(data.error || 'Failed to save');
+        }
     } catch (error) {
         console.error('Save error:', error);
         // Fallback to local storage
-        return saveLocalPatient(patientData);
+        const result = saveLocalPatient(patientData);
+        return result;
     }
 }
 
@@ -131,25 +124,27 @@ async function savePatient(patientData) {
  */
 async function updatePatient(sno, patientData) {
     try {
-        if (APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL') {
-            // Demo mode - use local storage
-            return updateLocalPatient(sno, patientData);
-        }
-
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'update',
-                sno: sno,
-                data: patientData
-            })
+        // Build URL with query parameters
+        const params = new URLSearchParams({
+            action: 'update',
+            sno: sno.toString(),
+            date: patientData.date,
+            name: patientData.name,
+            gender: patientData.gender,
+            phone: patientData.phone,
+            address: patientData.address,
+            referralSource: patientData.referralSource || '',
+            notes: patientData.notes || ''
         });
 
-        return { success: true };
+        const response = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.success) {
+            return { success: true };
+        } else {
+            throw new Error(data.error || 'Failed to update');
+        }
     } catch (error) {
         console.error('Update error:', error);
         return updateLocalPatient(sno, patientData);
@@ -157,7 +152,7 @@ async function updatePatient(sno, patientData) {
 }
 
 // ============================================
-// Local Storage Functions (Offline/Demo Mode)
+// Local Storage Functions (Offline/Fallback Mode)
 // ============================================
 
 function getLocalPatients() {
