@@ -25,12 +25,13 @@
 
 // Sheet configuration
 const SHEET_NAME = 'Patients';
+const SPREADSHEET_ID = '1anSvGy6Cg5FOXyTLoF7ySW9PthGe6l3Cn6mGNapudaY'; // Your Google Sheet ID
 
 /**
  * Initialize the sheet with headers if needed
  */
 function initSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(SHEET_NAME);
   
   if (!sheet) {
