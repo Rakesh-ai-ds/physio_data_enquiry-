@@ -166,6 +166,15 @@ async function fetchPatients() {
 
         if (data.success) {
             patients = data.records || [];
+            // Sort: Newest date first; if same date, higher S.No first
+            patients.sort((a, b) => {
+                const dateA = a.date || '';
+                const dateB = b.date || '';
+                if (dateA !== dateB) {
+                    return dateB.localeCompare(dateA);
+                }
+                return b.sno - a.sno;
+            });
             renderTable(patients);
         } else {
             throw new Error(data.error || 'Failed to fetch records');
@@ -173,6 +182,15 @@ async function fetchPatients() {
     } catch (error) {
         console.error('Fetch error:', error);
         patients = getLocalPatients();
+        // Sort offline fallback data
+        patients.sort((a, b) => {
+            const dateA = a.date || '';
+            const dateB = b.date || '';
+            if (dateA !== dateB) {
+                return dateB.localeCompare(dateA);
+            }
+            return b.sno - a.sno;
+        });
         renderTable(patients);
         showToast('Using offline mode', 'error');
     } finally {
