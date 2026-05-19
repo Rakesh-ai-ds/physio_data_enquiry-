@@ -168,10 +168,13 @@ async function fetchPatients() {
             patients = data.records || [];
             // Sort: Newest date first; if same date, higher S.No first
             patients.sort((a, b) => {
-                const dateA = a.date || '';
-                const dateB = b.date || '';
-                if (dateA !== dateB) {
-                    return dateB.localeCompare(dateA);
+                const timeA = a.date ? Date.parse(a.date) : 0;
+                const timeB = b.date ? Date.parse(b.date) : 0;
+                const valA = isNaN(timeA) ? 0 : timeA;
+                const valB = isNaN(timeB) ? 0 : timeB;
+                
+                if (valA !== valB) {
+                    return valB - valA;
                 }
                 return b.sno - a.sno;
             });
@@ -182,12 +185,15 @@ async function fetchPatients() {
     } catch (error) {
         console.error('Fetch error:', error);
         patients = getLocalPatients();
-        // Sort offline fallback data
+        // Sort offline fallback data using timestamps
         patients.sort((a, b) => {
-            const dateA = a.date || '';
-            const dateB = b.date || '';
-            if (dateA !== dateB) {
-                return dateB.localeCompare(dateA);
+            const timeA = a.date ? Date.parse(a.date) : 0;
+            const timeB = b.date ? Date.parse(b.date) : 0;
+            const valA = isNaN(timeA) ? 0 : timeA;
+            const valB = isNaN(timeB) ? 0 : timeB;
+            
+            if (valA !== valB) {
+                return valB - valA;
             }
             return b.sno - a.sno;
         });
